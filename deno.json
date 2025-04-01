@@ -1,11 +1,15 @@
 {
   "name": "@tangerie/utils",
-  "version": "0.1.0",
-  "exports": "./mod.ts",
-  "tasks": {
-    "dev": "deno test --watch"
+  "version": "1.0.0",
+  "exports": {
+      ".": "./mod.ts",
+      "./tqdm": "./tqdm/mod.ts",
+      "./zookeeper": "./zookeeper/mod.ts"
   },
   "license": "MIT",
-  "imports": {
+  "publish": {
+    "exclude": [
+      "tests/**/*"
+    ]
   }
 }
