@@ -1,4 +1,4 @@
-import { Database } from "jsr:@db/sqlite";
+import { Database } from "jsr:@db/sqlite@0.12.0";
 
 const handles = new Map<string, { count: number, handle: Database }>();
 
