@@ -17,15 +17,15 @@ const activeConfig : ActiveConfig = {
     onClose: (_db) => {}
 }
 
-export const setDbHandlerOpen = (func : ActiveConfig["onOpen"]) => {
+export const setDbHandlerOpen = (func : ActiveConfig["onOpen"]) : void => {
     activeConfig.onOpen = func;
 }
 
-export const setDbHandlerClose = (func : ActiveConfig["onClose"]) => {
+export const setDbHandlerClose = (func : ActiveConfig["onClose"]) : void => {
     activeConfig.onClose = func;
 }
 
-export const openDbHandler = (cfg : DatabaseConfig) => {
+export const openDbHandler = (cfg : DatabaseConfig) : Database => {
     const key = JSON.stringify(cfg);
 
     if(handles.has(key)) {
