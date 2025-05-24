@@ -1,15 +1,22 @@
 {
   "name": "@tangerie/utils",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "exports": {
       "./tqdm": "./tqdm/mod.ts",
-      "./zookeeper": "./zookeeper/mod.ts",
-      "./sqlite": "./sqlite/mod.ts"
+      "./sqlite": "./sqlite/mod.ts",
+      "./queue": "./queue/mod.ts",
+      "./cache": "./cache/mod.ts"
   },
   "license": "MIT",
   "publish": {
     "exclude": [
-      "tests/**/*"
+      "tests/**/*",
+      "examples/**/*"
     ]
+  },
+  "imports": {
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.4",
+    "@std/fs": "jsr:@std/fs@^1.0.17",
+    "@std/path": "jsr:@std/path@^1.0.9"
   }
 }

@@ -1,7 +1,37 @@
 {
-  "version": "4",
+  "version": "5",
+  "specifiers": {
+    "jsr:@nodef/extra-sleep@*": "0.1.2",
+    "jsr:@std/dotenv@~0.225.4": "0.225.4",
+    "jsr:@std/fs@^1.0.17": "1.0.17",
+    "jsr:@std/path@^1.0.9": "1.0.9"
+  },
+  "jsr": {
+    "@nodef/extra-sleep@0.1.2": {
+      "integrity": "a60abc203d8d75c2e5488ab56b2cbe0a8ba10f0eb6c615e7fd6d7adcd6262e92"
+    },
+    "@std/dotenv@0.225.4": {
+      "integrity": "2a672c2b192abe535dcfea1ae89f219ee3979af6aad7d185cb19206ee9bc5caf"
+    },
+    "@std/fs@1.0.17": {
+      "integrity": "1c00c632677c1158988ef7a004cb16137f870aafdb8163b9dce86ec652f3952b",
+      "dependencies": [
+        "jsr:@std/path"
+      ]
+    },
+    "@std/path@1.0.9": {
+      "integrity": "260a49f11edd3db93dd38350bf9cd1b4d1366afa98e81b86167b4e3dd750129e"
+    }
+  },
   "remote": {
     "https://deno.land/x/sleep@v1.3.0/mod.ts": "e9955ecd3228a000e29d46726cd6ab14b65cf83904e9b365f3a8d64ec61c1af3",
     "https://deno.land/x/sleep@v1.3.0/sleep.ts": "b6abaca093b094b0c2bba94f287b19a60946a8d15764d168f83fcf555f5bb59e"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/dotenv@~0.225.4",
+      "jsr:@std/fs@^1.0.17",
+      "jsr:@std/path@^1.0.9"
+    ]
   }
 }
