@@ -1,22 +1,12 @@
 import { join, dirname } from "@std/path"
 import { existsSync, ensureDir } from "@std/fs"
 import "@std/dotenv/load"
+import { asArray, asyncIterMap, type SingleOrMany } from "../internal/arrays.ts";
 
-type SingleOrMany<T> = Array<T> | T;
 
-function asArray<T>(data : SingleOrMany<T>) {
-    return Array.isArray(data) ? data : [data];
-}
-
-async function *asyncIterMap<I, O>(generator : AsyncGenerator<I>, fn : (item : I, index : number) => O | Promise<O>) {
-    let i = 0;
-    for await(const item of generator) {
-        yield await fn(item, i);
-        i++;
-    }
-}
-
-export type CacheKey = SingleOrMany<Deno.KvKeyPart>;
+export type CacheKeyPart = Deno.KvKeyPart; //string | number;
+type InternalCacheKey = Array<CacheKeyPart>;
+export type CacheKey = SingleOrMany<CacheKeyPart>;
 
 class Cache {
     private kvPath : string;
@@ -71,15 +61,15 @@ class Cache {
 }
 
 class CacheScope {
-    private _scope : Deno.KvKey;
+    private _scope : InternalCacheKey;
     private cache : Cache;
     
-    public constructor(cache : Cache, scope : Deno.KvKey) {
-        this._scope = scope;
+    public constructor(cache : Cache, scope : CacheKey) {
+        this._scope = asArray(scope);
         this.cache = cache;
     }
 
-    private key(_key : CacheKey): Deno.KvKeyPart[] {
+    private key(_key : CacheKey): InternalCacheKey {
         return [...this._scope, ...asArray(_key)];
     }
 
@@ -126,7 +116,7 @@ class CacheScope {
         });
     }
 
-    public async *list(prefix?: CacheKey): AsyncGenerator<{ key: Deno.KvKeyPart[]; value: unknown; }, void, unknown> {
+    public async *list(prefix?: CacheKey): AsyncGenerator<{ key: CacheKey; value: unknown; }, void, unknown> {
         const kv = await this.cache.openKv();
         const entries = await kv.list({
             prefix: this.key(prefix ?? [])
@@ -139,7 +129,7 @@ class CacheScope {
         kv.close();
     }
 
-    public keys(prefix?: CacheKey): AsyncGenerator<Deno.KvKeyPart[], void, unknown> {
+    public keys(prefix?: CacheKey): AsyncGenerator<CacheKey, void, unknown> {
         return asyncIterMap(this.list(prefix), entry => entry.key);
     }
     
