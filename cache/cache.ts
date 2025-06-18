@@ -2,15 +2,16 @@ import { join, dirname } from "@std/path"
 import { existsSync, ensureDir } from "@std/fs"
 import "@std/dotenv/load"
 import { asArray, asyncIterMap, type SingleOrMany } from "../internal/arrays.ts";
+import { KeyValue } from "../keyvalue/mod.ts";
 
 
-export type CacheKeyPart = Deno.KvKeyPart; //string | number;
+export type CacheKeyPart = string | number;
 type InternalCacheKey = Array<CacheKeyPart>;
 export type CacheKey = SingleOrMany<CacheKeyPart>;
 
 class Cache {
     private kvPath : string;
-    private kvHandle ?: Deno.Kv;
+    private kvHandle ?: KeyValue;
     private kvHandleCount : number;
 
     public constructor(cacheDir: string, clean : boolean) {
@@ -27,7 +28,7 @@ class Cache {
         }
     }
 
-    public async openKv() : Promise<Deno.Kv> {
+    public async openKv() : Promise<KeyValue> {
         this.kvHandleCount++;
 
         if(this.kvHandle !== undefined) {
@@ -36,7 +37,7 @@ class Cache {
 
         await ensureDir(dirname(this.kvPath));
         
-        const kv = await Deno.openKv(this.kvPath);
+        const kv = new KeyValue(this.kvPath);
         const ogClose = kv.close;
         Object.assign(kv, { close: () => {
             this.kvHandleCount--;
@@ -52,7 +53,7 @@ class Cache {
         return kv;
     }
 
-    public async use<T>(fn : (kv : Deno.Kv) => T | Promise<T>): Promise<T> {
+    public async use<T>(fn : (kv : KeyValue) => T | Promise<T>): Promise<T> {
         const kv = await this.openKv();
         const result = await fn(kv);
         kv.close();
@@ -80,58 +81,48 @@ class CacheScope {
     public get<T>(key : CacheKey, _default : T): Promise<T>;
     public get<T>(key : CacheKey): Promise<T | undefined>;
     public get<T>(key : CacheKey, _default?: T) {
-        return this.cache.use(async (kv) => {
-            const result = await kv.get<T>(this.key(key));
-        
-            if(result.versionstamp === null) {
-                return _default;
-            } else {
-                return result.value ?? _default;
-            }
+        return this.cache.use((kv) => {
+            const result = kv.get<T>(this.key(key));
+            return result ?? _default;
         })
     }
 
     public set<T>(key : CacheKey, value : T, expireInMs?: number): Promise<boolean> {
         return this.cache.use((kv) => {
-            return kv.set(this.key(key), value, {
-                expireIn: expireInMs
-            }).then(x => x.ok).catch(() => false);
+            return kv.set(this.key(key), value, expireInMs);
         })
     }
 
     public delete(...keys : CacheKey[]): Promise<void> {
-        return this.cache.use(async (kv) => {
+        return this.cache.use((kv) => {
             for(const key of keys){
-                await kv.delete(this.key(key));
+                kv.delete(this.key(key));
             }
         })
     }
 
-    public async clear(): Promise<void> {
-        await this.cache.use(async (kv) => {
-            const all_keys = await kv.list({ prefix: this._scope });
-            for await(const entry of all_keys) {
-                await kv.delete(entry.key);
-            }
-        });
-    }
+    // public async clear(): Promise<void> {
+    //     await this.cache.use((kv) => {
+    //         kv.clear();
+    //     });
+    // }
 
-    public async *list(prefix?: CacheKey): AsyncGenerator<{ key: CacheKey; value: unknown; }, void, unknown> {
-        const kv = await this.cache.openKv();
-        const entries = await kv.list({
-            prefix: this.key(prefix ?? [])
-        });
+    // public async *list(prefix?: CacheKey): AsyncGenerator<{ key: CacheKey; value: unknown; }, void, unknown> {
+    //     const kv = await this.cache.openKv();
+    //     const entries = await kv.list({
+    //         prefix: this.key(prefix ?? [])
+    //     });
         
-        for await(const entry of entries) {
-            yield { key: entry.key.slice(this._scope.length), value: entry.value }
-        }
+    //     for await(const entry of entries) {
+    //         yield { key: entry.key.slice(this._scope.length), value: entry.value }
+    //     }
 
-        kv.close();
-    }
+    //     kv.close();
+    // }
 
-    public keys(prefix?: CacheKey): AsyncGenerator<CacheKey, void, unknown> {
-        return asyncIterMap(this.list(prefix), entry => entry.key);
-    }
+    // public keys(prefix?: CacheKey): AsyncGenerator<CacheKey, void, unknown> {
+    //     return asyncIterMap(this.list(prefix), entry => entry.key);
+    // }
     
     public scope(key : CacheKey) : CacheScope {
         return new CacheScope(this.cache, this.key(key));

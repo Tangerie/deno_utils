@@ -110,4 +110,9 @@ export class KeyValue {
         stmt.finalize();
         return result?.cnt === 1;
     }
+
+    public clear() : void {
+        this.checkClosed();
+        this.db.exec("DELETE FROM data;");
+    }    
 }

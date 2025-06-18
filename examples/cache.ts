@@ -5,16 +5,16 @@ await Cache.set(["scope", "new", "test"], 467856);
 
 const scope = Cache.scope("scope").scope("new");
 
-console.log(await Array.fromAsync(await scope.keys()));
+// console.log(await Array.fromAsync(await scope.keys()));
 
 console.log(await scope.get("test", 123));
 console.log(await Cache.get("test", 123));
-console.log(await Array.fromAsync(await Cache.list()));
+// console.log(await Array.fromAsync(await Cache.list()));
 
-await scope.clear();
+// await scope.clear();
 
-console.log(await Array.fromAsync(await Cache.list()));
+// console.log(await Array.fromAsync(await Cache.list()));
 
-await Cache.clear();
+// await Cache.clear();
 
-console.log(await Array.fromAsync(await Cache.list()));
+// console.log(await Array.fromAsync(await Cache.list()));
