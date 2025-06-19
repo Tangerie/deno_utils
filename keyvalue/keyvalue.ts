@@ -69,7 +69,7 @@ export class KeyValue {
     }
 
     private _get<T>(key : KeyValueKey) : KeyValueEntry<T> | undefined  {
-        const stmt = this.db.prepare("SELECT * FROM data WHERE key = ?");
+        const stmt = this.db.prepare("SELECT key, value -> '$' as value, expiresAt FROM data WHERE key = ?");
         const result = stmt.get<KeyValueEntry<T>>(this.stringifyKey(key));
         stmt.finalize();
         if(!result) return undefined;
@@ -85,6 +85,7 @@ export class KeyValue {
 
     public get<T>(key : KeyValueKey, _default?: T) : T | undefined {
         this.checkClosed();
+        const r = this._get<T>(key);
         return this._get<T>(key)?.value ?? _default;
     }
 
