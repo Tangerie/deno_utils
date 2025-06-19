@@ -1,6 +1,6 @@
 {
   "name": "@tangerie/utils",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "tasks": {
     "dry": "deno publish --dry-run --allow-dirty",
     "test": "deno test -A --unstable-ffi"

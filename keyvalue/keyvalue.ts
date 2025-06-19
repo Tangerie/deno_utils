@@ -52,6 +52,7 @@ export class KeyValue {
     public close() : void {
         if(this.isClosed) return;
         this.isClosed = true;
+        this.db.exec("PRAGMA analysis_limit=400; PRAGMA optimize;");
         this.db.close();
     }
 
