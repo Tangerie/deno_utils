@@ -40,7 +40,7 @@ export class Emitter<TEventMap extends EventMap> {
     }
 }
 
-export function hideEmit<TEventMap extends EventMap>(emitter : Emitter<TEventMap>) {
+export function hideEmit<TEventMap extends EventMap>(emitter : Emitter<TEventMap>): Omit<Emitter<TEventMap>, "emit"> {
     return {
         on: emitter.on.bind(emitter),
         once: emitter.once.bind(emitter),
