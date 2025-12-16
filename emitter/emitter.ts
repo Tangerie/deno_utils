@@ -1,16 +1,17 @@
 type EventCallback<TArgs extends unknown[]> = (...args : TArgs) => any;
 type EventWaitPredicate<TArgs extends unknown[]> = (...args : TArgs) => boolean;
+type EventRemover = () => void;
 
 export class Emitter<TEventMap extends Record<string, unknown[]>> {
     private listeners = new Map<keyof TEventMap, Set<EventCallback<any[]>>>();
 
-    public on<K extends keyof TEventMap>(type : K, callback : EventCallback<TEventMap[K]>) {
+    public on<K extends keyof TEventMap>(type : K, callback : EventCallback<TEventMap[K]>) : EventRemover {
         if(!this.listeners.has(type)) this.listeners.set(type, new Set());
         this.listeners.get(type)!.add(callback);
         return () => this.remove(type, callback);
     }
 
-    public once<K extends keyof TEventMap>(type : K, callback : EventCallback<TEventMap[K]>) {
+    public once<K extends keyof TEventMap>(type : K, callback : EventCallback<TEventMap[K]>) : EventRemover {
         const cb : typeof callback = (...args) => { callback(...args); this.remove(type, cb); } 
         return this.on(type, cb);
     }
