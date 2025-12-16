@@ -1,2 +1,2 @@
 # Deno Utils
-`deno add @tangerie/utils`
+`deno add --jsr @tangerie/utils`

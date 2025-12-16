@@ -1,6 +1,6 @@
 {
   "name": "@tangerie/utils",
-  "version": "2.5.0",
+  "version": "2.7.0",
   "tasks": {
     "dry": "deno publish --dry-run --allow-dirty",
     "test": "deno test -A --unstable-ffi"
@@ -10,7 +10,8 @@
       "./sqlite": "./sqlite/mod.ts",
       "./queue": "./queue/mod.ts",
       "./cache": "./cache/mod.ts",
-      "./keyvalue": "./keyvalue/mod.ts"
+      "./keyvalue": "./keyvalue/mod.ts",
+      "./emitter": "./emitter/mod.ts"
   },
   "license": "MIT",
   "publish": {
