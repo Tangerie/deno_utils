@@ -1,8 +1,6 @@
-type EventCallback<TArgs extends unknown[]> = (...args : TArgs) => any;
-type EventWaitPredicate<TArgs extends unknown[]> = (...args : TArgs) => boolean;
-type EventRemover = () => void;
+import type { EventCallback, EventMap, EventRemover, EventWaitPredicate } from "./types.ts";
 
-export class Emitter<TEventMap extends Record<string, unknown[]>> {
+export class Emitter<TEventMap extends EventMap> {
     private listeners = new Map<keyof TEventMap, Set<EventCallback<any[]>>>();
 
     public on<K extends keyof TEventMap>(type : K, callback : EventCallback<TEventMap[K]>) : EventRemover {
@@ -39,5 +37,15 @@ export class Emitter<TEventMap extends Record<string, unknown[]>> {
             }
             this.on(type, cb);
         });
+    }
+}
+
+export function hideEmit<TEventMap extends EventMap>(emitter : Emitter<TEventMap>) {
+    return {
+        on: emitter.on.bind(emitter),
+        once: emitter.once.bind(emitter),
+        remove: emitter.remove.bind(emitter),
+        removeAll: emitter.removeAll.bind(emitter),
+        wait: emitter.wait.bind(emitter)
     }
 }
