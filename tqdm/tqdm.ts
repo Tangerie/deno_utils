@@ -27,13 +27,13 @@ const filledMarker = markers.at(-1);
 
 function formatRemaining(totalSeconds : number) {
     if (totalSeconds < 60) {
-        return `${totalSeconds}s`;
+        return `${totalSeconds.toFixed(2)}s`;
     }
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     
     // Skip showing 0 seconds (e.g., "5m" instead of "5m 0s")
-    return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`;
+    return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds.toFixed(2)}s`;
 }
 
 function renderBarWithSize({
