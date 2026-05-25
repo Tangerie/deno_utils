@@ -25,7 +25,7 @@ export type TqdmOptions = {
 const markers = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
 const filledMarker = markers.at(-1);
 
-function formatRemaining(totalSeconds : number) {
+function formatTime(totalSeconds : number) {
     if (totalSeconds < 60) {
         return `${totalSeconds.toFixed(2)}s`;
     }
@@ -53,7 +53,7 @@ function renderBarWithSize({
     const percent = (i / size) * 100;
     const graph = `${label ? label + ": " : ""}${percent.toFixed(
         1,
-    )}% |${bar}${gap}| ${i}/${size} | ${elapsed.toFixed(2)}>${formatRemaining(remaining)}s ${rate.toFixed(2)}it/s`;
+    )}% |${bar}${gap}| ${i}/${size} | ${formatTime(elapsed)}>${formatTime(remaining)} ${rate.toFixed(2)}it/s`;
     if (graph === "" && n > 0) {
         return "▏";
     }
