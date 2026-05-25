@@ -25,6 +25,17 @@ export type TqdmOptions = {
 const markers = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
 const filledMarker = markers.at(-1);
 
+function formatRemaining(totalSeconds : number) {
+    if (totalSeconds < 60) {
+        return `${totalSeconds}s`;
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    
+    // Skip showing 0 seconds (e.g., "5m" instead of "5m 0s")
+    return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`;
+}
+
 function renderBarWithSize({
     i,
     label,
@@ -42,9 +53,7 @@ function renderBarWithSize({
     const percent = (i / size) * 100;
     const graph = `${label ? label + ": " : ""}${percent.toFixed(
         1,
-    )}% |${bar}${gap}| ${i}/${size} | ${elapsed.toFixed(2)}>${remaining.toFixed(
-        2,
-    )}s ${rate.toFixed(2)}it/s`;
+    )}% |${bar}${gap}| ${i}/${size} | ${elapsed.toFixed(2)}>${formatRemaining(remaining)}s ${rate.toFixed(2)}it/s`;
     if (graph === "" && n > 0) {
         return "▏";
     }
