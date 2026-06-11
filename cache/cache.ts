@@ -1,8 +1,9 @@
 import { join, dirname } from "@std/path"
-import { existsSync, ensureDir } from "@std/fs"
+import { existsSync } from "@std/fs/exists"
 import "@std/dotenv/load"
-import { asArray, asyncIterMap, type SingleOrMany } from "../internal/arrays.ts";
+import { asArray, type SingleOrMany } from "../internal/arrays.ts";
 import { KeyValue } from "../keyvalue/mod.ts";
+import { ensureDirSync } from "@std/fs/ensure-dir";
 
 
 export type CacheKeyPart = string | number;
@@ -28,14 +29,14 @@ class Cache {
         }
     }
 
-    public async openKv() : Promise<KeyValue> {
+    public openKv() : KeyValue {
         this.kvHandleCount++;
 
         if(this.kvHandle !== undefined) {
             return this.kvHandle;
         }
 
-        await ensureDir(dirname(this.kvPath));
+        ensureDirSync(dirname(this.kvPath));
         
         const kv = new KeyValue(this.kvPath);
         const ogClose = kv.close;
@@ -55,9 +56,11 @@ class Cache {
 
     public async use<T>(fn : (kv : KeyValue) => T | Promise<T>): Promise<T> {
         const kv = await this.openKv();
-        const result = await fn(kv);
-        kv.close();
-        return result;
+        try {
+            return await fn(kv);
+        } finally {
+            kv.close();
+        }
     }
 }
 

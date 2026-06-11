@@ -21,3 +21,9 @@ singular.run(async () => {
     return m;
 });
 console.log(await singular.run(async () => await 0));
+console.log(await singular.run(async () => {
+    const m = Math.random();
+    console.log(m);
+    await sleep(1000);
+    return m;
+}));

@@ -9,20 +9,40 @@ export class SingularAsync<T> {
             return new Promise<T>((resolve, reject) => {
                 this.resolvers.push([resolve, reject]);
             });
-        } else {
-            this.active = true;
-            return new Promise((resolve, reject) => 
-                func().then(result => {
-                    this.resolvers.forEach(([resolver, _]) => resolver(result));
-                    resolve(result);
-                }).catch(err => {
-                    this.resolvers.forEach(([_, rejecter]) => rejecter(err));
-                    reject(err);
-                }).finally(() => {
-                    this.active = false;
-                    this.resolvers = [];
-                })
-            )
         }
+
+        this.active = true;
+
+        let started: Promise<T>;
+        try {
+            started = func();
+        } catch (err) {
+            started = Promise.reject(err);
+        }
+
+        return new Promise<T>((resolve, reject) => {
+            started.then(
+                (result) => {
+                    const waiters = this.settle();
+                    for (const [res] of waiters) res(result);
+                    resolve(result);
+                },
+                (err) => {
+                    const waiters = this.settle();
+                    for (const [, rej] of waiters) rej(err);
+                    reject(err);
+                }
+            );
+        });
+    }
+
+    // Snapshot waiters and reset state *before* broadcasting, so a run()
+    // triggered by a notified waiter starts a fresh cycle instead of being
+    // parked into an array that's about to be cleared.
+    private settle(): Array<[Resolver<T>, Reject]> {
+        const waiters = this.resolvers;
+        this.resolvers = [];
+        this.active = false;
+        return waiters;
     }
 }

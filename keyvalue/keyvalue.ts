@@ -86,7 +86,7 @@ export class KeyValue {
     public get<T>(key : KeyValueKey, _default?: T) : T | undefined {
         this.checkClosed();
         const r = this._get<T>(key);
-        return this._get<T>(key)?.value ?? _default;
+        return r?.value ?? _default;
     }
 
     public set<T>(key : KeyValueKey, value : T, expiresInMs?: number) : boolean {

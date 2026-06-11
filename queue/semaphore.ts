@@ -13,26 +13,32 @@ export class SemaphoreQueue {
         this.maxConcurrent = maxConcurrent;
     }
 
-    private async tryNext(): Promise<void> {
-        if(this.queue.length === 0) {
-            while(this.waiters.length > 0) {
-                this.waiters.shift()?.();
-            }
-            return;
-        }
-        if(this.numRunning >= this.maxConcurrent) return;
-        const [func, resolve, reject] = this.queue.shift()!;
-        this.numRunning++;
-        try {
-            const res = await func();
-            resolve(res);
-        } catch(err) {
-            reject(err);
-        } finally {
-            this.numRunning--;
-            await this.tryNext();
+    private get isIdle(): boolean {
+        return this.numRunning === 0 && this.queue.length === 0;
+    }
+
+    private drainWaiters(): void {
+        while(this.waiters.length > 0) this.waiters.shift()?.();
+    }
+
+    private tryNext(): void {
+        while(this.numRunning < this.maxConcurrent && this.queue.length > 0) {
+            const [func, resolve, reject] = this.queue.shift()!;
+            this.numRunning++;
+            (async () => {
+                try {
+                    resolve(await func());
+                } catch(err) {
+                    reject(err);
+                } finally {
+                    this.numRunning--;
+                    if(this.isIdle) this.drainWaiters();
+                    else this.tryNext();
+                }
+            })();
         }
     }
+
 
     public run<V>(func : QueueCaller<V>): Promise<V> {
         return new Promise<V>((resolve, reject) => {
@@ -42,6 +48,7 @@ export class SemaphoreQueue {
     }
 
     public wait(): Promise<void> {
-        return new Promise<void>((resolve) => this.waiters.push(resolve))
+        if(this.isIdle) return Promise.resolve();
+        return new Promise<void>((resolve) => this.waiters.push(resolve));
     }
 }
