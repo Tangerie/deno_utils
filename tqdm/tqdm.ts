@@ -47,14 +47,16 @@ function renderBarWithSize({
     width,
     elapsed,
 }: RenderBarOptions & { size: number }): string {
-    const n = Math.max((i * 8 * width) / size, 0);
+    // size === 0 means "nothing to do" — render a full bar at 100%.
+    const fraction = size > 0 ? i / size : 1;
+    const n = Math.max(fraction * 8 * width, 0);
     const whole = Math.floor(n / 8);
     const rem = Math.round(n % 8);
     const bar = new Array(whole).fill(filledMarker).join("") + markers[rem];
-    const gap = new Array(width - bar.length).fill(" ").join("");
+    const gap = new Array(Math.max(width - bar.length, 0)).fill(" ").join("");
     const rate = elapsed > 0 ? i / elapsed : 0;
     const remaining = rate > 0 ? (size - i) / rate : Infinity;
-    const percent = (i / size) * 100;
+    const percent = fraction * 100;
     const graph = `${label ? label + ": " : ""}${percent.toFixed(
         1,
     )}% |${bar}${gap}| ${i}/${size} | ${formatTime(elapsed)}>${
