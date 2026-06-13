@@ -20,6 +20,10 @@ export type TqdmOptions = {
     label?: string;
     size?: number;
     width?: number;
+    /** Line slot for this bar (0 = top). Auto-assigned to the lowest free slot if omitted. */
+    position?: number;
+    /** Keep the bar on screen after completion. Default true; set false for inner bars. */
+    leave?: boolean;
 };
 
 const markers = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"];
@@ -48,12 +52,14 @@ function renderBarWithSize({
     const rem = Math.round(n % 8);
     const bar = new Array(whole).fill(filledMarker).join("") + markers[rem];
     const gap = new Array(width - bar.length).fill(" ").join("");
-    const rate = i / elapsed;
-    const remaining = (size - i) / rate;
+    const rate = elapsed > 0 ? i / elapsed : 0;
+    const remaining = rate > 0 ? (size - i) / rate : Infinity;
     const percent = (i / size) * 100;
     const graph = `${label ? label + ": " : ""}${percent.toFixed(
         1,
-    )}% |${bar}${gap}| ${i}/${size} | ${formatTime(elapsed)}>${formatTime(remaining)} ${rate.toFixed(2)}it/s`;
+    )}% |${bar}${gap}| ${i}/${size} | ${formatTime(elapsed)}>${
+        Number.isFinite(remaining) ? formatTime(remaining) : "?"
+    } ${rate.toFixed(2)}it/s`;
     if (graph === "" && n > 0) {
         return "▏";
     }
@@ -65,7 +71,7 @@ function renderBarWithoutSize({
     label,
     elapsed,
 }: Omit<RenderBarOptions, "size">): string {
-    const rate = i / elapsed;
+    const rate = elapsed > 0 ? i / elapsed : 0;
     const graph = `${label ? label + ": " : ""}${i} | ${elapsed.toFixed(
         2,
     )}s ${rate.toFixed(2)}it/s`;
@@ -137,6 +143,78 @@ class Writer {
     }
 }
 
+const isDocker = () =>
+    (globalThis as any).Deno?.env?.get?.("IS_DOCKER") === "1" ||
+    (globalThis as any).process?.env?.IS_DOCKER === "1";
+
+/**
+ * Owns the multi-line bar block. Bars acquire a position (line slot),
+ * render into it via cursor movement, and release it when done.
+ * Cursor convention: always parked at column 1 on the line *below* the block.
+ */
+class BarManager {
+    private static _instance?: BarManager;
+    static get instance(): BarManager {
+        return (this._instance ??= new BarManager());
+    }
+
+    private writer = new Writer();
+    private occupied = new Set<number>();
+    private height = 0;
+    private chain: Promise<void> = Promise.resolve();
+    private docker = isDocker();
+
+    /** Serialize writes so concurrent bars can't interleave escape sequences. */
+    private enqueue(fn: () => Promise<void>): Promise<void> {
+        this.chain = this.chain.then(fn, fn);
+        return this.chain;
+    }
+
+    acquire(position?: number): number {
+        let pos = position ?? 0;
+        if (position === undefined) {
+            while (this.occupied.has(pos)) pos++;
+        }
+        this.occupied.add(pos);
+        return pos;
+    }
+
+    render(pos: number, text: string): Promise<void> {
+        return this.enqueue(async () => {
+            if (this.docker) {
+                // No cursor games in dumb terminals / log collectors: append-only.
+                await this.writer.write(text + "\n");
+                return;
+            }
+            // Grow the block downward until the slot exists.
+            while (this.height < pos + 1) {
+                await this.writer.write("\n");
+                this.height++;
+            }
+            const up = this.height - pos;
+            await this.writer.write(
+                `\x1b[${up}A` +   // jump up to the slot's line
+                "\x1b[2K\x1b[1G" + // clear it, column 1
+                text +
+                `\x1b[${up}B\x1b[1G`, // park below the block again
+            );
+        });
+    }
+
+    release(pos: number, leave: boolean): Promise<void> {
+        return this.enqueue(async () => {
+            this.occupied.delete(pos);
+            if (!this.docker && !leave && pos < this.height) {
+                const up = this.height - pos;
+                await this.writer.write(`\x1b[${up}A\x1b[2K\x1b[${up}B\x1b[1G`);
+            }
+            // When the whole block is done, reset so the next batch starts fresh.
+            if (this.occupied.size === 0) this.height = 0;
+        });
+    }
+}
+
+
 /**
  * A TQDM progress bar for an arbitrary `AsyncIterableIterator<T>`.
  *
@@ -145,7 +223,7 @@ class Writer {
  */
 export async function* tqdm<T>(
     iter: Array<T> | IterableIterator<T> | AsyncIterableIterator<T>,
-    { label, size, width = 16 }: TqdmOptions = {},
+    { label, size, width = 16, position, leave = true }: TqdmOptions = {},
 ): AsyncIterableIterator<T> {
     if (Array.isArray(iter)) {
         size = iter.length;
@@ -155,19 +233,24 @@ export async function* tqdm<T>(
         iter = toAsyncIterableIterator(iter);
     }
 
+    const mgr = BarManager.instance;
+    const pos = mgr.acquire(position);
     const start = Date.now();
-    const writer = new Writer();
-    let i = 1;
-    for await (const it of iter) {
-        yield it;
+    let i = 0;
+    
+    const paint = () => {
         const elapsed = (Date.now() - start) / 1000;
-        await writer.write(
-            renderBar({ i, label, size, width, elapsed }) + "\x1b[1G",
-        );
-        i++;
-        if(Deno.env.get("IS_DOCKER") === "1") {
-            await writer.write("\n")
+        return mgr.render(pos, renderBar({ i, label, size, width, elapsed }));
+    };
+
+    try {
+        await paint(); // empty bar, immediately
+        for await (const it of iter) {
+            yield it;
+            i++;
+            await paint();
         }
+    } finally {
+        await mgr.release(pos, leave);
     }
-    void writer.write("\n");
 }
