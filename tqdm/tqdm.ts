@@ -145,9 +145,15 @@ class Writer {
     }
 }
 
-const isDocker = () =>
-    (globalThis as any).Deno?.env?.get?.("IS_DOCKER") === "1" ||
-    (globalThis as any).process?.env?.IS_DOCKER === "1";
+function isTerminal(): boolean {
+    const d = (globalThis as any).Deno;
+    if (d?.stdout?.isTerminal) return d.stdout.isTerminal();
+    const proc = (globalThis as any).process;
+    if (proc?.stdout) return Boolean(proc.stdout.isTTY);
+    return false;
+}
+
+const IS_TERMINAL = isTerminal();
 
 /**
  * Owns the multi-line bar block. Bars acquire a position (line slot),
@@ -164,8 +170,7 @@ class BarManager {
     private occupied = new Set<number>();
     private height = 0;
     private chain: Promise<void> = Promise.resolve();
-    private docker = isDocker();
-
+    
     /** Serialize writes so concurrent bars can't interleave escape sequences. */
     private enqueue(fn: () => Promise<void>): Promise<void> {
         this.chain = this.chain.then(fn, fn);
@@ -183,7 +188,7 @@ class BarManager {
 
     render(pos: number, text: string): Promise<void> {
         return this.enqueue(async () => {
-            if (this.docker) {
+            if (!IS_TERMINAL) {
                 // No cursor games in dumb terminals / log collectors: append-only.
                 await this.writer.write(text + "\n");
                 return;
@@ -206,7 +211,7 @@ class BarManager {
     release(pos: number, leave: boolean): Promise<void> {
         return this.enqueue(async () => {
             this.occupied.delete(pos);
-            if (!this.docker && !leave && pos < this.height) {
+            if (IS_TERMINAL && !leave && pos < this.height) {
                 const up = this.height - pos;
                 await this.writer.write(`\x1b[${up}A\x1b[2K\x1b[${up}B\x1b[1G`);
             }
