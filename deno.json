@@ -1,6 +1,6 @@
 {
   "name": "@tangerie/utils",
-  "version": "2.12.0",
+  "version": "2.13.0",
   "tasks": {
     "dry": "deno publish --dry-run --allow-dirty",
     "test": "deno test -A --unstable-ffi"
@@ -11,7 +11,8 @@
       "./queue": "./queue/mod.ts",
       "./cache": "./cache/mod.ts",
       "./keyvalue": "./keyvalue/mod.ts",
-      "./emitter": "./emitter/mod.ts"
+      "./emitter": "./emitter/mod.ts",
+      "./async": "./async/mod.ts"
   },
   "license": "MIT",
   "publish": {
@@ -24,6 +25,7 @@
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.13.0",
     "@std/assert": "jsr:@std/assert@^1.0.13",
+    "@std/async": "jsr:@std/async@^1.5.0",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.4",
     "@std/fs": "jsr:@std/fs@^1.0.17",
     "@std/path": "jsr:@std/path@^1.0.9",
